@@ -3,8 +3,11 @@ name = "rusthtml"
 version = "0.1.0"
 authors = ["void-life"]
 edition = "2018"
+description = "A html parser written in rust"
+repository = "https://github.com/moelife-coder/rusthtml"
+license = "GPL-3.0-only"
+keywords = ["html", "parser"]
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 
