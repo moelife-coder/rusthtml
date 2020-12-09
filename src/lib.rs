@@ -1,5 +1,77 @@
 #[cfg(test)]
 mod tests;
+
+pub fn tag_optimize<'a>(mut content: Vec<HtmlTag<'a>>) -> Vec<HtmlTag<'a>> {
+    let mut offset = 0;
+    // There should be a better way to do this...
+    // Despreated.
+    let _ = |x| match x {
+        HtmlTag::OpeningTag(i, j) => {
+            let mut a = j
+                .iter()
+                .map(|x| {
+                    if let Some(i) = x.1 {
+                        format!(" {}={}", x.0, i)
+                    } else {
+                        format!(" {}", x.0)
+                    }
+                })
+                .fold(format!("<{}", i), |a, b| {
+                    let mut a = a;
+                    a.push_str(&b);
+                    a
+                });
+            a.push('>');
+            a
+        }
+        HtmlTag::ClosingTag(i) => format!("</{}>", i),
+        HtmlTag::Unparsable(i) => i.to_string(),
+    };
+    // TODO: implement `template`
+    // TODO: implement `head`, `body` omition
+    // This is only a subset of the full rule. More rules should be added to make it complete.
+    for i in 0..content.len() {
+        if let HtmlTag::OpeningTag(name, _) = content[i + offset] {
+            match name {
+                "area" | "base" | "br" | "col" | "embed" | "hr" | "img" | "input" | "link"
+                | "meta" | "param" | "source" | "track" | "wbr" => {
+                    content.insert(i + offset + 1, HtmlTag::ClosingTag(name));
+                    offset += 1;
+                }
+                "li" | "dd" | "dt" | "rt" | "rp" | "optgroup" | "tr" | "td" | "th"=> {
+                    if let HtmlTag::OpeningTag(name_c, _) = content[i + offset + 1] {
+                        if name_c == name {
+                            content.insert(i + offset + 1, HtmlTag::ClosingTag(name));
+                            offset += 1;
+                        }
+                    }
+                }
+                "p" => {
+                    // TODO: "if there is no more content in the parent element and the parent
+                    // element is an HTML element that is not an a, audio, del, ins, map, noscript,
+                    // or video element, or an autonomous custom element."
+                    if let HtmlTag::OpeningTag(name_c, _) = content[i + offset + 1] {
+                        match name_c {
+                            "address" | "article" | "aside" | "blockquote" | "details" | "div"
+                            | "dl" | "fieldset" | "figcaption" | "figure" | "footer" | "form"
+                            | "h1" | "h2" | "h3" | "h4" | "h5" | "h6" | "header" | "hgroup"
+                            | "hr" | "main" | "menu" | "nav" | "ol" | "p" | "pre" | "section"
+                            | "table" | "ul" => {
+                                content.insert(i + offset + 1, HtmlTag::ClosingTag("p"));
+                                offset += 1;
+                            }
+                            _ => {}
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+
+    content
+}
+
 #[derive(PartialEq, Debug)]
 pub enum ElementTagState {
     OnlyStartTag,
@@ -79,9 +151,12 @@ impl<'a> HtmlTag<'a> {
                 constructed.push(Self::Unparsable(&content[last_splitn + 1..index]))
             }
         };
+        let mut ignore_parsing = None;
         for (index, i) in content.char_indices() {
             if i == '<' {
+                if ignore_parsing.is_none() {
                 unparsable_content_push(index, last_splitn, &mut constructed);
+                }
                 last_splitn = index;
             } else if i == '>' {
                 let tag = &content[last_splitn..index];
@@ -89,12 +164,27 @@ impl<'a> HtmlTag<'a> {
                     continue;
                 }
                 let tag = &tag[1..].trim_start();
-                constructed.push(if tag.chars().nth(0) == Some('/') {
+                let constru = if tag.chars().nth(0) == Some('/') {
+                    if let Some((i, j)) = ignore_parsing {
+                        if i == &tag[1..] {
+                            ignore_parsing = None;
+                            constructed.push(HtmlTag::Unparsable(&content[j..last_splitn]));
+                        } else {
+                            continue
+                        }
+                    }
                     Self::ClosingTag(&tag[1..])
                 } else {
+                    if ignore_parsing.is_some() {
+                        continue
+                    }
                     let parsed = Self::parse_opening_tag_content(tag);
+                    if (parsed.0 == "script" ) | (parsed.0 == "style") | (parsed.0 == "textarea") | (parsed.0 == "title") {
+                        ignore_parsing = Some((parsed.0, index + 1));
+                    }
                     Self::OpeningTag(parsed.0, parsed.1)
-                });
+                };
+                constructed.push(constru);
                 last_splitn = index;
             }
         }
