@@ -1,6 +1,29 @@
 #[cfg(test)]
 mod tests;
 
+/// A tag "completer" that fill in some missing tags allowed by html specification
+///
+/// Some html tags are allowed to be "inferred" in specific location; however, our parser does not
+/// allow this. Thus, this function will "fix" those tags.
+///
+/// **This function is currently significantly incomplete compared to html specification.**
+///
+/// ```
+/// # extern crate rusthtml;
+/// # use rusthtml::*;
+/// let parsed = ElementContent::parse(tag_optimize(HtmlTag::parse(
+///        r#"<img abc>"#,
+///    )));
+/// assert_eq!(parsed,
+///     Ok(vec![
+///         ElementContent::HtmlElement(Box::new(HtmlElement {
+///         name: "img",
+///         attributes: vec![("abc", None)],
+///         tag_state: ElementTagState::BothTag,
+///         content: Vec::new(),
+///     }))])
+/// );
+/// ```
 pub fn tag_optimize<'a>(mut content: Vec<HtmlTag<'a>>) -> Vec<HtmlTag<'a>> {
     let mut offset = 0;
     // There should be a better way to do this...
@@ -72,25 +95,38 @@ pub fn tag_optimize<'a>(mut content: Vec<HtmlTag<'a>>) -> Vec<HtmlTag<'a>> {
     content
 }
 
+/// Possible tag state of an element
 #[derive(PartialEq, Debug)]
 pub enum ElementTagState {
     OnlyStartTag,
     OnlyEndTag,
     BothTag,
 }
+/// Possible content of an element
 #[derive(PartialEq, Debug)]
 pub enum ElementContent<'a> {
     HtmlElement(Box<HtmlElement<'a>>),
     LiteralContent(&'a str),
 }
+/// A html element
 #[derive(PartialEq, Debug)]
 pub struct HtmlElement<'a> {
+    /// Name of the element
     pub name: &'a str,
+    /// Attributes of the element
     pub attributes: Vec<(&'a str, Option<&'a str>)>,
+    /// Possible tag state of an element
     pub tag_state: ElementTagState,
+    /// Contents of the element
     pub content: Vec<ElementContent<'a>>,
 }
 impl<'a> ElementContent<'a> {
+    /// Parse a vector of html tag to elements
+    /// 
+    /// # Errors
+    ///
+    /// If the input content contains ending tag of a non-existing element, the function will
+    /// yield an error.
     pub fn parse(content: Vec<HtmlTag<'a>>) -> Result<Vec<Self>, ()> {
         let mut constructed = Vec::new();
         for i in content {
@@ -136,6 +172,7 @@ impl<'a> ElementContent<'a> {
     }
 }
 
+/// Raw html tag
 #[derive(PartialEq, Debug)]
 pub enum HtmlTag<'a> {
     OpeningTag(&'a str, Vec<(&'a str, Option<&'a str>)>),
@@ -143,6 +180,7 @@ pub enum HtmlTag<'a> {
     Unparsable(&'a str),
 }
 impl<'a> HtmlTag<'a> {
+    /// Parse a html to tags
     pub fn parse(content: &'a str) -> Vec<Self> {
         let mut last_splitn = 0;
         let mut constructed = Vec::new();

@@ -57,7 +57,7 @@ fn almost_all() {
 #[test]
 fn unicode_characters() {
     let parsed = ElementContent::parse(tag_optimize(HtmlTag::parse(
-        r#"<p class=❤>Hello!<img src="abc"></p><title>Löwe 老虎 Léopard</title>"#,
+        r#"<p class=❤>Hello!<img src="abc"></p><title>Löwe 老虎 Léopard</title><script><this should not be parsed>This should not too</script>"#,
     )));
     assert_eq!(
         parsed,
@@ -81,6 +81,12 @@ fn unicode_characters() {
                 attributes: Vec::new(),
                 tag_state: ElementTagState::BothTag,
                 content: vec![ElementContent::LiteralContent("Löwe 老虎 Léopard")]
+            })),
+            ElementContent::HtmlElement(Box::new(HtmlElement {
+                name: "script",
+                attributes: Vec::new(),
+                tag_state: ElementTagState::BothTag,
+                content: vec![ElementContent::LiteralContent("<this should not be parsed>This should not too")]
             }))
         ])
     );
