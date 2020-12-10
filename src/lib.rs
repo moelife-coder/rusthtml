@@ -235,6 +235,7 @@ impl<'a> HtmlTag<'a> {
             NoQuote,
             SingleQuote,
             DoubleQuote,
+            BangQuote
         };
         let mut current_quotation = QuoteStatus::NoQuote;
         let mut splitted_content = Vec::new();
@@ -254,16 +255,18 @@ impl<'a> HtmlTag<'a> {
             } else if index + 1 == length {
                 splitted_content.push(&content[space_position..].trim_start());
                 space_position = index + 1;
-            } else if (i == '"') | (i == '\'') {
+            } else if (i == '"') | (i == '\'') | (i == '!'){
                 current_quotation = match current_quotation {
                     QuoteStatus::NoQuote => {
                         if i == '"' {
                             QuoteStatus::DoubleQuote
-                        } else {
+                        } else if i == '\'' {
                             QuoteStatus::SingleQuote
+                        } else {
+                            QuoteStatus::BangQuote
                         }
                     }
-                    QuoteStatus::DoubleQuote | QuoteStatus::SingleQuote => QuoteStatus::NoQuote,
+                    _ => QuoteStatus::NoQuote,
                 };
             }
             if i != ' ' {

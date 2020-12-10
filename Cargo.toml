@@ -1,6 +1,6 @@
 [package]
 name = "rusthtml"
-version = "0.2.1"
+version = "0.2.2"
 authors = ["void-life"]
 edition = "2018"
 description = "A html parser written in rust"
