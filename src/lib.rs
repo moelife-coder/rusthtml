@@ -280,7 +280,7 @@ impl<'a> HtmlTag<'a> {
             }
         }
         if splitted_content.len() == 0 {
-            unreachable!()
+            return ("", Vec::new());
         }
         let name = splitted_content.remove(0);
         let splitted_content = splitted_content
