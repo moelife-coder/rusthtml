@@ -61,7 +61,7 @@ pub fn tag_optimize<'a>(mut content: Vec<HtmlTag<'a>>) -> Vec<HtmlTag<'a>> {
                     content.insert(i + offset + 1, HtmlTag::ClosingTag(name));
                     offset += 1;
                 }
-                "li" | "dd" | "dt" | "rt" | "rp" | "optgroup" | "tr" | "td" | "th"=> {
+                "li" | "dd" | "dt" | "rt" | "rp" | "optgroup" | "tr" | "td" | "th" => {
                     if let HtmlTag::OpeningTag(name_c, _) = content[i + offset + 1] {
                         if name_c == name {
                             content.insert(i + offset + 1, HtmlTag::ClosingTag(name));
@@ -122,7 +122,7 @@ pub struct HtmlElement<'a> {
 }
 impl<'a> ElementContent<'a> {
     /// Parse a vector of html tag to elements
-    /// 
+    ///
     /// # Errors
     ///
     /// If the input content contains ending tag of a non-existing element, the function will
@@ -193,7 +193,7 @@ impl<'a> HtmlTag<'a> {
         for (index, i) in content.char_indices() {
             if i == '<' {
                 if ignore_parsing.is_none() {
-                unparsable_content_push(index, last_splitn, &mut constructed);
+                    unparsable_content_push(index, last_splitn, &mut constructed);
                 }
                 last_splitn = index;
             } else if i == '>' {
@@ -208,16 +208,22 @@ impl<'a> HtmlTag<'a> {
                             ignore_parsing = None;
                             constructed.push(HtmlTag::Unparsable(&content[j..last_splitn]));
                         } else {
-                            continue
+                            continue;
                         }
                     }
                     Self::ClosingTag(&tag[1..])
+                } else if tag.chars().nth(0) == Some('!') {
+                    Self::Unparsable(tag)
                 } else {
                     if ignore_parsing.is_some() {
-                        continue
+                        continue;
                     }
                     let parsed = Self::parse_opening_tag_content(tag);
-                    if (parsed.0 == "script" ) | (parsed.0 == "style") | (parsed.0 == "textarea") | (parsed.0 == "title") {
+                    if (parsed.0 == "script")
+                        | (parsed.0 == "style")
+                        | (parsed.0 == "textarea")
+                        | (parsed.0 == "title")
+                    {
                         ignore_parsing = Some((parsed.0, index + 1));
                     }
                     Self::OpeningTag(parsed.0, parsed.1)
@@ -235,7 +241,7 @@ impl<'a> HtmlTag<'a> {
             NoQuote,
             SingleQuote,
             DoubleQuote,
-            BangQuote
+            BangQuote,
         };
         let mut current_quotation = QuoteStatus::NoQuote;
         let mut splitted_content = Vec::new();
@@ -255,7 +261,7 @@ impl<'a> HtmlTag<'a> {
             } else if index + 1 == length {
                 splitted_content.push(&content[space_position..].trim_start());
                 space_position = index + 1;
-            } else if (i == '"') | (i == '\'') | (i == '!'){
+            } else if (i == '"') | (i == '\'') | (i == '!') {
                 current_quotation = match current_quotation {
                     QuoteStatus::NoQuote => {
                         if i == '"' {
